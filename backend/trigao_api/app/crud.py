@@ -1,3 +1,4 @@
+from typing import List
 from sqlalchemy.orm import Session
 from . import models, schemas, auth
 
@@ -71,3 +72,39 @@ def delete_product(db: Session, product_id: int):
         db.delete(db_product)
         db.commit()
     return db_product
+def create_order(db: Session, user_id: int, items_in: List[schemas.OrderItemCreate]) -> models.Order:
+    """
+    Cria um novo pedido no banco de dados.
+    """
+    total_amount = 0
+    order_items = []
+
+    # Calcula o valor total e prepara os itens do pedido
+    for item_in in items_in:
+        product = get_product(db, item_in.product_id)
+        if not product:
+            # Em uma aplicação real, você poderia lançar uma exceção aqui
+            continue
+        
+        item_price = product.price * item_in.quantity
+        total_amount += item_price
+        
+        order_item = models.OrderItem(
+            product_id=item_in.product_id,
+            quantity=item_in.quantity,
+            price=product.price # Salva o preço unitário no momento da compra
+        )
+        order_items.append(order_item)
+
+    # Cria a instância do pedido
+    db_order = models.Order(
+        user_id=user_id,
+        total_amount=total_amount,
+        items=order_items # Associa os itens ao pedido
+    )
+
+    db.add(db_order)
+    db.commit()
+    db.refresh(db_order)
+    
+    return db_order
