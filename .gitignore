@@ -1,0 +1,29 @@
+# Arquivos de ambiente virtual
+venv/
+*.venv/
+env/
+ENV/
+
+# Arquivos de configuração de IDEs
+.vscode/
+.idea/
+
+# Arquivos de cache e compilados do Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Arquivos de pacotes e distribuição
+*.egg-info/
+dist/
+build/
+wheels/
+
+# Arquivos de sistema operacional
+.DS_Store
+Thumbs.db
+
+# ARQUIVO MAIS IMPORTANTE A SER IGNORADO:
+# Nunca envie suas senhas e chaves secretas para o repositório!
+.env
