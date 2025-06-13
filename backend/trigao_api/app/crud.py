@@ -108,3 +108,59 @@ def create_order(db: Session, user_id: int, items_in: List[schemas.OrderItemCrea
     db.refresh(db_order)
     
     return db_order
+
+# --- CRUD de Pedidos ---
+
+def get_order_by_id(db: Session, order_id: int):
+    """Busca um único pedido pelo seu ID."""
+    return db.query(models.Order).filter(models.Order.id == order_id).first()
+
+def get_all_orders(db: Session, skip: int = 0, limit: int = 100):
+    """Busca todos os pedidos, para uso de administradores."""
+    return db.query(models.Order).order_by(models.Order.created_at.desc()).offset(skip).limit(limit).all()
+
+def get_orders_by_user(db: Session, user_id: int, skip: int = 0, limit: int = 100):
+    """Busca todos os pedidos de um usuário específico."""
+    return db.query(models.Order).filter(models.Order.user_id == user_id).order_by(models.Order.created_at.desc()).offset(skip).limit(limit).all()
+
+def create_order(db: Session, order_in: schemas.OrderCreate, user_id: int) -> models.Order:
+    """
+    Cria um novo pedido de forma transacional e segura.
+    - Valida a existência dos produtos.
+    - Busca os preços do banco de dados para evitar adulteração.
+    - Calcula o valor total.
+    - Salva tudo em um único commit.
+    """
+    total_amount = 0.0
+    order_items_to_create = []
+
+    # Validação e cálculo seguro dos itens
+    for item_in in order_in.items:
+        product = get_product(db, product_id=item_in.product_id)
+        if not product:
+            # Lança uma exceção que será capturada pela camada da API (router)
+            raise ValueError(f"Produto com ID {item_in.product_id} não encontrado.")
+        
+        item_total_price = product.price * item_in.quantity
+        total_amount += item_total_price
+        
+        order_item = models.OrderItem(
+            product_id=item_in.product_id,
+            quantity=item_in.quantity,
+            price=product.price  # Preço é pego do banco, não da requisição do cliente
+        )
+        order_items_to_create.append(order_item)
+
+    # Criação do pedido com seus itens
+    db_order = models.Order(
+        user_id=user_id,
+        total_amount=total_amount,
+        items=order_items_to_create
+    )
+
+    # Operação atômica: adiciona e commita
+    db.add(db_order)
+    db.commit()
+    db.refresh(db_order)
+    
+    return db_order

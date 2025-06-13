@@ -1,4 +1,4 @@
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, EmailStr, ConfigDict
 from typing import Optional, List
 from enum import Enum
 from datetime import datetime
@@ -13,9 +13,7 @@ class ProductRead(BaseModel):
     product_name: str
     price: float
     unit: str
-
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 # --- Schemas de Item de Pedido ---
 class OrderItemBase(BaseModel):
@@ -28,30 +26,25 @@ class OrderItemCreate(OrderItemBase):
 class OrderItemRead(OrderItemBase):
     id: int
     price: float
-    product: ProductRead # Schema aninhado para mostrar detalhes do produto
-
-    class Config:
-        from_attributes = True
+    product: ProductRead
+    model_config = ConfigDict(from_attributes=True)
 
 # --- Schemas de Pedido ---
 class OrderBase(BaseModel):
     pass
 
-# Não criaremos OrderCreate agora, pois a criação será gerenciada no backend
-# para calcular o total e garantir a consistência.
+class OrderCreate(BaseModel):
+    items: List[OrderItemCreate]
 
 class OrderRead(OrderBase):
     id: int
     user_id: int
     total_amount: float
     created_at: datetime
-    items: List[OrderItemRead] = [] # Lista aninhada de itens do pedido
+    items: List[OrderItemRead] = []
+    model_config = ConfigDict(from_attributes=True)
 
-    class Config:
-        from_attributes = True
-
-
-# --- Schemas Existentes (mantidos para referência) ---
+# --- Schemas de Produto ---
 class ProductBase(BaseModel):
     code: str
     product_name: str
@@ -65,9 +58,9 @@ class ProductCreate(ProductBase):
 
 class Product(ProductBase):
     id: int
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
+# --- Schemas de Usuário ---
 class UserBase(BaseModel):
     email: EmailStr
     username: str
@@ -79,9 +72,9 @@ class User(UserBase):
     id: int
     is_active: bool
     role: Role
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
+# --- Schemas de Autenticação ---
 class Token(BaseModel):
     access_token: str
     token_type: str
